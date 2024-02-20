@@ -34,7 +34,7 @@ class MainViewModel(
                     getProductListUseCase.execute()
                 }.onSuccess { productList ->
                     _state.update {
-                        it.copy(loadableProductList = Loaded(data = productList))
+                        it.copy(loadableProductList = Loaded(data = productList.groupBy { it.category }))
                     }
                 }.onFailure { throwable ->
                     _state.update {
