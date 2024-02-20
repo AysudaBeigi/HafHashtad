@@ -1,10 +1,10 @@
 package com.example.hafhashtad.presentation
 
-import androidx.lifecycle.ViewModel
-import com.example.hafhashtad.base.BaseViewModel
-import com.example.hafhashtad.base.CoroutineDispatcherProvider
+import com.example.hafhashtad.base.*
 import com.example.hafhashtad.domain.GetProductListUseCase
 import com.example.hafhashtad.domain.Product
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class MainViewModel(
@@ -13,25 +13,35 @@ class MainViewModel(
 ) : BaseViewModel(
     coroutineContexts = coroutineDispatcherProvider,
 ) {
+    private val _state = MutableStateFlow(State())
+
     init {
         getProductListUseCase()
     }
 
     data class State(
-        val productList:List<Product>
+        val loadableProductList: LoadableData<List<Product>> = NotLoaded
     )
 
     private fun getProductListUseCase() {
-      launch {
-          onBg {
-              runCatching {
-                  getProductListUseCase.execute()
-              }.onSuccess {
 
-              }.onFailure {
-
-              }
-          }
-      }
+        launch {
+            onBg {
+                _state.update {
+                    it.copy(loadableProductList = Loading)
+                }
+                runCatching {
+                    getProductListUseCase.execute()
+                }.onSuccess { productList ->
+                    _state.update {
+                        it.copy(loadableProductList = Loaded(data = productList))
+                    }
+                }.onFailure { throwable ->
+                    _state.update {
+                        it.copy(loadableProductList = Failed(throwble = throwable))
+                    }
+                }
+            }
+        }
     }
 }
